@@ -1,0 +1,59 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the development branch
+  push:
+    branches: [ java11 ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Configure JDK
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      # Build with Maven
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+        
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          #
+          # this script is to repackage repository jar with necessary jars
+          #
+          pwd
+          export GIT_BRANCH=$TRAVIS_BRANCH
+          echo "this is branch name: $GIT_BRANCH"
+
+          # setting up artifact uploads to aws
+          mkdir -p ./aws-upload/{tmp,repo,gen}
+
+          # copying the repo and gen to respective folders
+          echo "copying both repo and gen artifacts to specific folders"
+          cp ./repository/repository-server/target/infomodelrepository.jar ./aws-upload/repo
+          cp ./generators/generator-runner/target/generator-runner-exec.jar ./aws-upload/gen
+
+          # copying the repository artifact to the aws-upload
+          echo "copying the repo artifact to tmp"
+          cp ./aws-upload/repo/infomodelrepository.jar ./aws-upload/tmp
+          cd aws-upload/tmp
+          jar -xvf infomodelrepository.jar
+          rm -f infomodelrepository.jar
